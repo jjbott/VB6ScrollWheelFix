@@ -6,10 +6,10 @@
 #include <winuser.h>
 #pragma data_seg("SHARED")
 HHOOK g_hHook;
-static bool ctrlState = false;
 #pragma data_seg()
 
 HINSTANCE hInstance;
+bool ctrlState;
 
 BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -62,33 +62,34 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 	{	
 
 		// Added 1/14/2004 //////////////////////////////////////////
+		// Removed 1/17/2004                                       //
 		//                                                         //
 		// See if we got an event about the ctrl key               //
-		if(((MSG*)lParam)->wParam == VK_CONTROL)                   //
-		{                                                          //
+		//if(((MSG*)lParam)->wParam == VK_CONTROL)                 //
+		//{                                                        //
 			// Determine if ctrl key is being pressed or released  //
-			if(((MSG*)lParam)->message == WM_KEYDOWN)              //
-				ctrlState = true;                                  //
-			else if(((MSG*)lParam)->message == WM_KEYUP)           //
-				ctrlState = false;                                 //
-		}                                                          //
+		//	if(((MSG*)lParam)->message == WM_KEYDOWN)              //
+		//		ctrlState = true;                                  //
+		//	else if(((MSG*)lParam)->message == WM_KEYUP)           //
+		//		ctrlState = false;                                 //
+		//}                                                        //
 		/////////////////////////////////////////////////////////////
 	
 		// Filter out everything but the WM_MOUSEWHEEL event
 		if(((MSG*)lParam)->message == WM_MOUSEWHEEL)
 		{
-			
+
+			// Added 1/14/2004 /////////////////////////////
+			// Updated 1/17/2004                          //
+			UINT Msg;			                          //
+			if(ctrlState = (GetAsyncKeyState(VK_CONTROL) & 0x80000000)) //
+				Msg = WM_HSCROLL;                         //
+			else                                          //
+				Msg = WM_VSCROLL;                         //
+			////////////////////////////////////////////////
+
 			// Get the handle to the scrollbar
 			HWND scrollHWnd = GetScrollHandle(((MSG*)lParam)->hwnd);
-			
-
-			// Added 1/14/2004 /////
-			UINT Msg;			  //
-			if(ctrlState)         //
-				Msg = WM_HSCROLL; //
-			else                  //
-				Msg = WM_VSCROLL; //
-			////////////////////////
 
 			// Determine how much the mouse wheel has moved (multiples of WHEEL_DELTA)
 			int wheel = HIWORD(((MSG*)lParam)->wParam);
