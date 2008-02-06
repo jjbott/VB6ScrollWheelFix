@@ -5,12 +5,24 @@
 
 #include <winuser.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <TCHAR.h>
+#include <vector>
+#include "WindowConfig.h"
+
+static const int MAX_WINDOWS = 32;
+
 #pragma data_seg("SHARED")
-HHOOK g_hHook;
+static HHOOK g_hHook(NULL);
+static int g_iWindowCount(0);
+static WindowConfig g_aWindows[MAX_WINDOWS] = {};
 #pragma data_seg()
+#pragma comment(linker, "/section:SHARED,RWS")
+
+// horizontal mouse wheel message id
+#define WM_MOUSEHWHEEL (0x020e)
 
 HINSTANCE hInstance;
-bool ctrlState;
 
 BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -28,32 +40,31 @@ BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 // Edit 1/22/2004: Modified Vertical Scrollbar selection. Since there 
 //                 may be 2 vertical scrollbars, I need to pick the 
 //                 best match
-HWND GetScrollHandle(HWND hWnd)
+HWND GetScrollHandle(HWND hWnd, bool abHorizontal)
 {
 	DWORD style;
 	
 	HWND vertScrollHWnd = NULL; // Storage for potential vertical scrollbars
 	
-
 	// find the first "ScrollBar" child
-	HWND scrollHWnd = FindWindowEx(hWnd,NULL,"ScrollBar",NULL);
+	HWND scrollHWnd = FindWindowEx(hWnd,NULL,_T("ScrollBar"),NULL);
 	
 	while(scrollHWnd != NULL)
 	{
 		// Get the style, to determine if this is the vertical scrollbar
 		style = GetWindowLong(scrollHWnd,GWL_STYLE);
 
-		
-		/////////////////////////////////////////////////////////////
-		// Added 1/22/2004. If we want a horizontal scrollbar,     //
-		// return immediately                                      //
-		if(ctrlState && style&SBS_HORZ)                            //
-			return scrollHWnd;                                     //
-		/////////////////////////////////////////////////////////////
+		// If we want a horizontal scrollbar, return immediately.
+		// I'm asuming that there will only be one
+		if ( abHorizontal && 
+			 (0 < (style&SBS_HORZ)) )          
+		{
+			return scrollHWnd;                   
+		}
 
-		// Modified 1/22/2004: Made to handle multiple scrollbars
+
 		// Make sure the Scrollbar is vertical and visible
-		if(!ctrlState && style&SBS_VERT && style&WS_VISIBLE)
+		if(!abHorizontal && style&SBS_VERT && style&WS_VISIBLE)
 		{
 			//Found a vertical scrollbar
 			if(vertScrollHWnd == NULL)
@@ -81,10 +92,9 @@ HWND GetScrollHandle(HWND hWnd)
 		}
 
 		// Find the next "Scrollbar" child
-		scrollHWnd = FindWindowEx(hWnd,scrollHWnd,"ScrollBar",NULL);
+		scrollHWnd = FindWindowEx(hWnd,scrollHWnd,_T("ScrollBar"),NULL);
 	}
 
-	// Added 1/22/2004
 	if(vertScrollHWnd != NULL) // We never found a second scrollbar, 
 		return vertScrollHWnd; // return the one we found
 	
@@ -94,85 +104,71 @@ HWND GetScrollHandle(HWND hWnd)
 
 LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-	char classname[255];
+    if ( (0 <= nCode) && 
+		 (PM_REMOVE == wParam) ) // Only process if the message is being removed from the
+		                         //  queue, otherwise we may process it multiple times
+	{
+		MSG* lpMsg = (MSG*)lParam;
 
-	// Get the class of the window that this message is for
-	GetClassName(((MSG*)lParam)->hwnd,classname,255);
-
-	// We only care about the "VbaWindow" class
-	// TODO: Figure out why the same method doesnt work with "DesignerWindow"
-	//       I never get its WM_MOUSEWHEEL messages, even though Spy++ gets them...
-	if(strcmp(classname,"VbaWindow") == 0)
-	{	
-
-		// Added 1/14/2004 //////////////////////////////////////////
-		// Removed 1/17/2004                                       //
-		//                                                         //
-		// See if we got an event about the ctrl key               //
-		//if(((MSG*)lParam)->wParam == VK_CONTROL)                 //
-		//{                                                        //
-			// Determine if ctrl key is being pressed or released  //
-		//	if(((MSG*)lParam)->message == WM_KEYDOWN)              //
-		//		ctrlState = true;                                  //
-		//	else if(((MSG*)lParam)->message == WM_KEYUP)           //
-		//		ctrlState = false;                                 //
-		//}                                                        //
-		/////////////////////////////////////////////////////////////
-	
-		// Filter out everything but the WM_MOUSEWHEEL event
-		if(((MSG*)lParam)->message == WM_MOUSEWHEEL)
+		// Filter out everything but the WM_MOUSEWHEEL and WM_MOUSEHWHEEL event
+		if( (WM_MOUSEWHEEL == lpMsg->message) ||
+			(WM_MOUSEHWHEEL == lpMsg->message) ) 
 		{
-
-			// Added 1/14/2004 /////////////////////////////
-			// Updated 1/17/2004                          //
-			UINT Msg;			                          //
-			if(ctrlState = (GetAsyncKeyState(VK_CONTROL) & 0x80000000)) //
-				Msg = WM_HSCROLL;                         //
-			else                                          //
-				Msg = WM_VSCROLL;                         //
-			////////////////////////////////////////////////
-
-			// Get the handle to the scrollbar
-			HWND scrollHWnd = GetScrollHandle(((MSG*)lParam)->hwnd);
-
-			// Determine how much the mouse wheel has moved (multiples of WHEEL_DELTA)
-			int wheel = HIWORD(((MSG*)lParam)->wParam);
-			
-			// Make sure negative numbers are negative. Could probaly
-			// avoid this by using a 16bit int, but what fun is that?
-			if(wheel&0x8000)
-				wheel = wheel|0xffff0000;
-	
-			if(wheel<0)
+			HWND lhwndMsgTarget = NULL;
+			bool lbFoundMatch = false;
+			WindowConfig* lpWindowConfig = NULL;
+			for(int index = 0; !lbFoundMatch && (index < g_iWindowCount); ++index)
 			{
-				// Wheel < 0
-				// User wants to scroll down, so send 3 SB_LINEDOWN
-				// messages for each wheel click
-				for(int i = 0; i > wheel; i=i-WHEEL_DELTA)
-				{
-					// Edit 1/14/2004: Changed "WM_VSCROLL" to "Msg"
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
-				}
-			}
-			else
-			{
-				// Wheel > 0
-				// User wants to scroll up, so send 3 SB_LINEDOWN
-				// messages for each wheel click
-				for(int i = 0; i < wheel; i=i+WHEEL_DELTA)
-				{
-					// Edit 1/14/2004: Changed "WM_VSCROLL" to "Msg"
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
-				}
+				lpWindowConfig = &g_aWindows[index];
+				lbFoundMatch = Match(*lpWindowConfig, lpMsg->hwnd, lhwndMsgTarget);
+
 			}
 
-			// Send the SB_ENDSCROLL message
-			SendMessage(((MSG*)lParam)->hwnd,Msg,SB_ENDSCROLL,(LPARAM)scrollHWnd);
-			
+			if (NULL != lhwndMsgTarget )
+			{	
+				int liMsgCount(0);
+				UINT liScrollMsg;	
+				bool lbHorizontalScroll(false);
+				if( (WM_MOUSEHWHEEL == lpMsg->message) ||
+					(0 < (GetAsyncKeyState(VK_CONTROL) & 0x80000000)) )
+				{
+					lbHorizontalScroll = true;
+				}
+
+				if ( lbHorizontalScroll )
+				{
+					liMsgCount = lpWindowConfig->iHorzMsgCount;
+					liScrollMsg = WM_HSCROLL;                         
+				}
+				else                                          
+				{
+					liMsgCount = lpWindowConfig->iVertMsgCount;
+					liScrollMsg = WM_VSCROLL;    
+				}
+
+				// Get the handle to the scrollbar
+				HWND scrollHWnd = GetScrollHandle(lhwndMsgTarget, lbHorizontalScroll);
+
+				// Determine how much the mouse wheel has moved 
+				short lsWheelDelta = HIWORD(lpMsg->wParam);
+		
+				UINT liScrollType = SB_LINEUP;
+				if( lsWheelDelta < 0 )
+				{
+					liScrollType = SB_LINEDOWN;
+					lsWheelDelta = -lsWheelDelta;
+				}
+
+				for(int liScrollAmount = 0; liScrollAmount < lsWheelDelta; liScrollAmount += WHEEL_DELTA)
+				{
+					for(int liMsgsSent = 0; liMsgsSent < liMsgCount; ++liMsgsSent)
+					{
+						SendMessage(lhwndMsgTarget, liScrollMsg, liScrollType, (LPARAM)scrollHWnd);
+					}
+				}
+
+				SendMessage(lpMsg->hwnd, liScrollMsg, SB_ENDSCROLL, (LPARAM)scrollHWnd);
+			}
 		}
 	}
 
@@ -190,4 +186,28 @@ void SetHook(HWND hWnd)
 void UnsetHook()
 {
 	UnhookWindowsHookEx(g_hHook);
+}
+
+void AddScrollWindow(const std::basic_string<TCHAR>& astrProcess,
+			         const std::basic_string<TCHAR>& astrWindowClass,
+			         const std::basic_string<TCHAR>& astrParentClass,
+					 int aiVertMsgCount,
+					 int aiHorzMsgCount)
+{
+	int index = g_iWindowCount++;
+	if ( index < MAX_WINDOWS )
+	{
+		InitializeWindowConfig(g_aWindows[index],
+			                   astrProcess, 
+							   astrWindowClass, 
+							   astrParentClass, 
+							   aiVertMsgCount, 
+							   aiHorzMsgCount);
+	}
+
+}
+
+void ClearConfig()
+{
+	g_iWindowCount = 0;
 }

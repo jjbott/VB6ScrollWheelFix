@@ -2,3 +2,5 @@ LIBRARY	VB6ScrollWheelHook
 	EXPORTS 
 		SetHook	@1
 		UnsetHook	@2
+		AddScrollWindow	@3
+		ClearConfig @4

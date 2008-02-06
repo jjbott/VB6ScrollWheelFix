@@ -1,13 +1,11 @@
 #include <windows.h>
 #include <stdio.h>
+#include <string>
 #include "resource.h"
+#include "TCHAR.h"
+#include "ErrorHandler.h"
+#include "VB6ScrollWheelHook.h"
 
-// Macro to pop up error codes
-#define ERRORPOPUP {char buffer[100];sprintf(buffer, "error: %i", GetLastError());MessageBox(NULL,buffer,"Error",MB_OK);}
-
-// DLL functions
-typedef void (*SETHOOK)(HWND);
-typedef void (*UNSETHOOK)();
 
 HINSTANCE g_hInstance = NULL;
 HWND g_dlgHwnd = NULL;
@@ -61,12 +59,69 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+void LoadConfig(ADD_SCROLL_WINDOW apAddScrollWindow)
+{
+	const int BUFFER_SIZE = 256;
+	TCHAR lpszBuffer[BUFFER_SIZE];
+	int liCharsRead(0);
+
+	TCHAR lpszIniPath[_MAX_PATH];
+	GetModuleFileName(NULL, lpszIniPath, MAX_PATH);
+
+	TCHAR lpszDrive[_MAX_DRIVE];
+	TCHAR lpszPath[_MAX_PATH];
+	TCHAR lpszFilename[_MAX_FNAME];
+	TCHAR lpszExtension[_MAX_EXT];
+	_tsplitpath_s(lpszIniPath, lpszDrive, lpszPath, lpszFilename, lpszExtension);
+	_tmakepath_s(lpszIniPath, _MAX_PATH, lpszDrive, lpszPath, lpszFilename, _T(".ini"));
+
+	TCHAR lpszSectionNames[1024];
+	DWORD ldwCharsRead = GetPrivateProfileSectionNames(lpszSectionNames, 1024, lpszIniPath);
+	if ( ldwCharsRead < 1022 )
+	{
+		TCHAR* lpszSectionName = lpszSectionNames;
+		while( '\0' != (*lpszSectionName) )
+		{
+			std::basic_string<TCHAR> lstrProcess;
+			std::basic_string<TCHAR> lstrWindowClass;
+			std::basic_string<TCHAR> lstrParentClass;
+			int liVertMsgCount(0);
+			int liHorzMsgCount(0);
+			
+			GetPrivateProfileString(lpszSectionName, _T("Process"), _T(""), lpszBuffer, BUFFER_SIZE, lpszIniPath);
+			lstrProcess = lpszBuffer;
+
+			GetPrivateProfileString(lpszSectionName, _T("WindowClass"), _T(""), lpszBuffer, BUFFER_SIZE, lpszIniPath);
+			lstrWindowClass = lpszBuffer;
+
+			GetPrivateProfileString(lpszSectionName, _T("ParentWindowClass"), _T(""), lpszBuffer, BUFFER_SIZE, lpszIniPath);
+			lstrParentClass = lpszBuffer;
+
+			GetPrivateProfileString(lpszSectionName, _T("VertMsgCount"), _T("3"), lpszBuffer, BUFFER_SIZE, lpszIniPath);
+			liVertMsgCount = _tstoi(lpszBuffer);
+
+			GetPrivateProfileString(lpszSectionName, _T("HorzMsgCount"), _T("3"), lpszBuffer, BUFFER_SIZE, lpszIniPath);
+			liHorzMsgCount = _tstoi(lpszBuffer);
+
+			if ( (lstrProcess != _T("")) && 
+				 (lstrWindowClass != _T("")) )
+			{
+				apAddScrollWindow(lstrProcess, lstrWindowClass, lstrParentClass, liVertMsgCount, liHorzMsgCount);
+			}
+
+			lpszSectionName += _tcslen(lpszSectionName) + 1;
+		}
+	}
+}
+
+
+
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	g_hInstance = hInstance;
 	
 	// Make sure only one copy is running
-	if(FindWindow("VB6ScrollWheelFix",NULL) != NULL)
+	if(FindWindow(_T("VB6ScrollWheelFix"), NULL) != NULL)
 		return -1;
 		
 	// Create the window class. Very minimal, since its never displayed...
@@ -74,20 +129,20 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	ZeroMemory((void*)&wndClass,sizeof(WNDCLASS));
 	wndClass.lpfnWndProc = WindowProc; 
 	wndClass.hInstance = hInstance;
-	wndClass.lpszClassName = "VB6ScrollWheelFix";
+	wndClass.lpszClassName = _T("VB6ScrollWheelFix");
 
 	// Register the class
 	if(RegisterClass(&wndClass) == 0)
 	{
-		ERRORPOPUP;
+		DisplayLastError();
 		return -1;
 	}
 
 	// Create our window
-	HWND hWnd = CreateWindow("VB6ScrollWheelFix",NULL,NULL,0,0,1,1,NULL,NULL,hInstance,NULL);
+	HWND hWnd = CreateWindow(_T("VB6ScrollWheelFix"),NULL,NULL,0,0,1,1,NULL,NULL,hInstance,NULL);
 	if(hWnd == NULL)
 	{
-		ERRORPOPUP;
+		DisplayLastError();
 		return -1;
 	}
 
@@ -100,33 +155,39 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
     notifyIconData.hWnd = hWnd; 
     notifyIconData.uFlags = NIF_ICON |NIF_MESSAGE|NIF_TIP  ; 
     notifyIconData.uCallbackMessage = WM_USER; 
-	strcpy(notifyIconData.szTip,"VB6 Scroll Wheel Fix");
+	_tcscpy_s(notifyIconData.szTip, 64, _T("VB6 Scroll Wheel Fix"));
 
 	// Add the icon to the task bar
 	Shell_NotifyIcon(NIM_ADD, &notifyIconData);
 
-
 	HINSTANCE hinstDLL;
 
 	// Load my DLL
-	hinstDLL = LoadLibrary("VB6ScrollWheelHook.dll");
+	hinstDLL = LoadLibrary(_T("VB6ScrollWheelHook.dll"));
 	if(hinstDLL == NULL)
 	{
-		MessageBox(NULL,"Hook DLL not loaded", "Error", MB_OK);
+		MessageBox(NULL,_T("Hook DLL not loaded"), _T("Error"), MB_OK);
 		return -1;
 	}
 
 	// DLL function pointers
-	SETHOOK pSetHook;
-	UNSETHOOK pUnsetHook;
+	SET_HOOK pSetHook;
+	UNSET_HOOK pUnsetHook;
+	ADD_SCROLL_WINDOW pAddScrollWindow;
+	CLEAR_CONFIG pClearConfig;
 
 	// Get the functions from the DLL
-	pSetHook = (SETHOOK)GetProcAddress(hinstDLL,"SetHook");
-	pUnsetHook = (UNSETHOOK)GetProcAddress(hinstDLL,"UnsetHook");
+	pSetHook = (SET_HOOK)GetProcAddress(hinstDLL,"SetHook");
+	pUnsetHook = (UNSET_HOOK)GetProcAddress(hinstDLL,"UnsetHook");
+	pAddScrollWindow = (ADD_SCROLL_WINDOW)GetProcAddress(hinstDLL,"AddScrollWindow");
+	pClearConfig = (CLEAR_CONFIG)GetProcAddress(hinstDLL,"ClearConfig");
+	
+	(*pClearConfig)();
+	LoadConfig(pAddScrollWindow);
 
 	if(NULL ==pSetHook)
 	{
-		MessageBox(NULL,"GetProcAddress(SetHook) Failed", "Error", MB_OK);
+		MessageBox(NULL,_T("GetProcAddress(SetHook) Failed"), _T("Error"), MB_OK);
 	}
 	else
 		(*pSetHook)(hWnd); // Set the message hook
