@@ -6,6 +6,7 @@
 #include <winuser.h>
 #pragma data_seg("SHARED")
 HHOOK g_hHook;
+static bool ctrlState = false;
 #pragma data_seg()
 
 HINSTANCE hInstance;
@@ -17,11 +18,13 @@ BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
     return TRUE;
 }
 
-// Get the handle of the vertical scrollbar
+// Get the handle of the scrollbar 
 //
 // The VB Code window's scrollbars have their own handles, so I
 // need to find them, or else sending WM_VSCROLL wont work
-HWND GetVScrollHandle(HWND hWnd)
+//
+// Edit 1/14/2004: Changed from GetVScrollHandle to GetScrollHandle
+HWND GetScrollHandle(HWND hWnd)
 {
 	DWORD style;
 
@@ -32,7 +35,9 @@ HWND GetVScrollHandle(HWND hWnd)
 	{
 		// Get the style, to determine if this is the vertical scrollbar
 		style = GetWindowLong(scrollHWnd,GWL_STYLE);
-		if(style&SBS_VERT)
+
+		// Edited 1/14/2004 to get HORZ or VERT scrollbar depending on ctrlState
+		if((ctrlState && style&SBS_HORZ)||(!ctrlState && style&SBS_VERT))
 			return scrollHWnd; // Got the vert scrollbar, all done!
 
 		// Find the next "Scrollbar" child
@@ -54,12 +59,36 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 	// TODO: Figure out why the same method doesnt work with "DesignerWindow"
 	//       I never get its WM_MOUSEWHEEL messages, even though Spy++ gets them...
 	if(strcmp(classname,"VbaWindow") == 0)
-	{
+	{	
+
+		// Added 1/14/2004 //////////////////////////////////////////
+		//                                                         //
+		// See if we got an event about the ctrl key               //
+		if(((MSG*)lParam)->wParam == VK_CONTROL)                   //
+		{                                                          //
+			// Determine if ctrl key is being pressed or released  //
+			if(((MSG*)lParam)->message == WM_KEYDOWN)              //
+				ctrlState = true;                                  //
+			else if(((MSG*)lParam)->message == WM_KEYUP)           //
+				ctrlState = false;                                 //
+		}                                                          //
+		/////////////////////////////////////////////////////////////
+	
 		// Filter out everything but the WM_MOUSEWHEEL event
 		if(((MSG*)lParam)->message == WM_MOUSEWHEEL)
 		{
-			// Get the handle to the vertical scrollbar
-			HWND scrollHWnd = GetVScrollHandle(((MSG*)lParam)->hwnd);
+			
+			// Get the handle to the scrollbar
+			HWND scrollHWnd = GetScrollHandle(((MSG*)lParam)->hwnd);
+			
+
+			// Added 1/14/2004 /////
+			UINT Msg;			  //
+			if(ctrlState)         //
+				Msg = WM_HSCROLL; //
+			else                  //
+				Msg = WM_VSCROLL; //
+			////////////////////////
 
 			// Determine how much the mouse wheel has moved (multiples of WHEEL_DELTA)
 			int wheel = HIWORD(((MSG*)lParam)->wParam);
@@ -76,9 +105,10 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 				// messages for each wheel click
 				for(int i = 0; i > wheel; i=i-WHEEL_DELTA)
 				{
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEDOWN,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEDOWN,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEDOWN,(LPARAM)scrollHWnd);
+					// Edit 1/14/2004: Changed "WM_VSCROLL" to "Msg"
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEDOWN,(LPARAM)scrollHWnd);
 				}
 			}
 			else
@@ -88,14 +118,15 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 				// messages for each wheel click
 				for(int i = 0; i < wheel; i=i+WHEEL_DELTA)
 				{
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEUP,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEUP,(LPARAM)scrollHWnd);
-					SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_LINEUP,(LPARAM)scrollHWnd);
+					// Edit 1/14/2004: Changed "WM_VSCROLL" to "Msg"
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
+					SendMessage(((MSG*)lParam)->hwnd,Msg,SB_LINEUP,(LPARAM)scrollHWnd);
 				}
 			}
 
 			// Send the SB_ENDSCROLL message
-			SendMessage(((MSG*)lParam)->hwnd,WM_VSCROLL,SB_ENDSCROLL,(LPARAM)scrollHWnd);
+			SendMessage(((MSG*)lParam)->hwnd,Msg,SB_ENDSCROLL,(LPARAM)scrollHWnd);
 			
 		}
 	}
