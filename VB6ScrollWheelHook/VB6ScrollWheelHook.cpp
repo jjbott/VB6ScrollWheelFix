@@ -4,6 +4,7 @@
 #include "stdafx.h"
 
 #include <winuser.h>
+#include <stdio.h>
 #pragma data_seg("SHARED")
 HHOOK g_hHook;
 #pragma data_seg()
@@ -24,9 +25,15 @@ BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 // need to find them, or else sending WM_VSCROLL wont work
 //
 // Edit 1/14/2004: Changed from GetVScrollHandle to GetScrollHandle
+// Edit 1/22/2004: Modified Vertical Scrollbar selection. Since there 
+//                 may be 2 vertical scrollbars, I need to pick the 
+//                 best match
 HWND GetScrollHandle(HWND hWnd)
 {
 	DWORD style;
+	
+	HWND vertScrollHWnd = NULL; // Storage for potential vertical scrollbars
+	
 
 	// find the first "ScrollBar" child
 	HWND scrollHWnd = FindWindowEx(hWnd,NULL,"ScrollBar",NULL);
@@ -36,14 +43,51 @@ HWND GetScrollHandle(HWND hWnd)
 		// Get the style, to determine if this is the vertical scrollbar
 		style = GetWindowLong(scrollHWnd,GWL_STYLE);
 
-		// Edited 1/14/2004 to get HORZ or VERT scrollbar depending on ctrlState
-		if((ctrlState && style&SBS_HORZ)||(!ctrlState && style&SBS_VERT))
-			return scrollHWnd; // Got the vert scrollbar, all done!
+		
+		/////////////////////////////////////////////////////////////
+		// Added 1/22/2004. If we want a horizontal scrollbar,     //
+		// return immediately                                      //
+		if(ctrlState && style&SBS_HORZ)                            //
+			return scrollHWnd;                                     //
+		/////////////////////////////////////////////////////////////
+
+		// Modified 1/22/2004: Made to handle multiple scrollbars
+		// Make sure the Scrollbar is vertical and visible
+		if(!ctrlState && style&SBS_VERT && style&WS_VISIBLE)
+		{
+			//Found a vertical scrollbar
+			if(vertScrollHWnd == NULL)
+				vertScrollHWnd = scrollHWnd; // First one we've found, store it
+			else
+			{
+				// I assume that the first vertical scrollbar (vertScrollHWnd) 
+				// was the bottom one, and this one (scrollHWnd) is the top one. 
+				RECT vScrollRect;
+				POINT mousePt;
+
+				// Get the scrollbar's location
+				GetWindowRect(scrollHWnd,&vScrollRect);
+				// Get the mouse pointer's location
+				GetCursorPos(&mousePt);
+
+
+				if (mousePt.y <= vScrollRect.bottom)
+					return scrollHWnd; // Pointer is above the bottom of the 
+				                       // top scrollbar, use top scrollbar
+				else
+                    return vertScrollHWnd; // Otherwise, use the bottom
+			}
+			
+		}
 
 		// Find the next "Scrollbar" child
 		scrollHWnd = FindWindowEx(hWnd,scrollHWnd,"ScrollBar",NULL);
 	}
 
+	// Added 1/22/2004
+	if(vertScrollHWnd != NULL) // We never found a second scrollbar, 
+		return vertScrollHWnd; // return the one we found
+	
 	// Nothing was found, return NULL
 	return NULL;
 }
