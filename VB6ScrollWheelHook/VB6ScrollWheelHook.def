@@ -1,0 +1,4 @@
+LIBRARY	VB6ScrollWheelHook
+	EXPORTS 
+		SetHook	@1
+		UnsetHook	@2
