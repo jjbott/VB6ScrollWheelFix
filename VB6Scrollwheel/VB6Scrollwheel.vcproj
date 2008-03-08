@@ -220,6 +220,31 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\VB6ScrollwheelFix.ini"
+			DeploymentContent="true"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Copying INI"
+					CommandLine="xcopy $(InputPath) $(TargetDir)"
+					Outputs="$(TargetDir)$(InputFileName)"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Copying INI"
+					CommandLine="xcopy $(InputPath) $(TargetDir)"
+					Outputs="$(TargetDir)$(InputFileName)"
+				/>
+			</FileConfiguration>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
