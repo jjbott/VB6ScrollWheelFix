@@ -73,11 +73,11 @@ void InitializeWindowConfig(WindowConfig& arWindowConfig,
 							const std::basic_string<TCHAR>& astrProcess,
 							const std::basic_string<TCHAR>& astrWindowClass,
 							const std::basic_string<TCHAR>& astrParentClass,
-							int aiVertMsgCount,
-							int aiHorzMsgCount)
+							double adVertMsgCount,
+							double adHorzMsgCount)
 {
-	arWindowConfig.iVertMsgCount = aiVertMsgCount;
-	arWindowConfig.iHorzMsgCount = aiHorzMsgCount;
+	arWindowConfig.dVertMsgCount = adVertMsgCount;
+	arWindowConfig.dHorzMsgCount = adHorzMsgCount;
 	_tcsncpy_s(arWindowConfig.strProcess, astrProcess.c_str(), MAX_PROCESS);
 	_tcsncpy_s(arWindowConfig.strWindowClass, astrWindowClass.c_str(), MAX_PROCESS);
 	_tcsncpy_s(arWindowConfig.strParentClass, astrParentClass.c_str(), MAX_PROCESS);

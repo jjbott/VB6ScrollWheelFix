@@ -85,8 +85,8 @@ void LoadConfig(ADD_SCROLL_WINDOW apAddScrollWindow)
 			std::basic_string<TCHAR> lstrProcess;
 			std::basic_string<TCHAR> lstrWindowClass;
 			std::basic_string<TCHAR> lstrParentClass;
-			int liVertMsgCount(0);
-			int liHorzMsgCount(0);
+			double ldVertMsgCount(0);
+			double ldHorzMsgCount(0);
 			
 			GetPrivateProfileString(lpszSectionName, _T("Process"), _T(""), lpszBuffer, BUFFER_SIZE, lpszIniPath);
 			lstrProcess = lpszBuffer;
@@ -98,15 +98,15 @@ void LoadConfig(ADD_SCROLL_WINDOW apAddScrollWindow)
 			lstrParentClass = lpszBuffer;
 
 			GetPrivateProfileString(lpszSectionName, _T("VertMsgCount"), _T("3"), lpszBuffer, BUFFER_SIZE, lpszIniPath);
-			liVertMsgCount = _tstoi(lpszBuffer);
+			ldVertMsgCount = _tstof(lpszBuffer);
 
 			GetPrivateProfileString(lpszSectionName, _T("HorzMsgCount"), _T("3"), lpszBuffer, BUFFER_SIZE, lpszIniPath);
-			liHorzMsgCount = _tstoi(lpszBuffer);
+			ldHorzMsgCount = _tstof(lpszBuffer);
 
 			if ( (lstrProcess != _T("")) && 
 				 (lstrWindowClass != _T("")) )
 			{
-				apAddScrollWindow(lstrProcess, lstrWindowClass, lstrParentClass, liVertMsgCount, liHorzMsgCount);
+				apAddScrollWindow(lstrProcess, lstrWindowClass, lstrParentClass, ldVertMsgCount, ldHorzMsgCount);
 			}
 
 			lpszSectionName += _tcslen(lpszSectionName) + 1;

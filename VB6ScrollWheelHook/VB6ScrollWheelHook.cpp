@@ -24,6 +24,11 @@ static WindowConfig g_aWindows[MAX_WINDOWS] = {};
 
 HINSTANCE hInstance;
 
+double g_dWheelDelta(0);
+HWND g_hwndLastTarget(NULL);
+UINT g_bLastScrollType(0);
+UINT g_bLastScrollDirection(0);
+
 BOOL APIENTRY DllMain( HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
 	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
@@ -126,7 +131,7 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 			if (NULL != lhwndMsgTarget )
 			{	
-				int liMsgCount(0);
+				double ldMsgCount(0);
 				UINT liScrollMsg;	
 				bool lbHorizontalScroll(false);
 				if( (WM_MOUSEHWHEEL == lpMsg->message) ||
@@ -137,12 +142,12 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 				if ( lbHorizontalScroll )
 				{
-					liMsgCount = lpWindowConfig->iHorzMsgCount;
+					ldMsgCount = lpWindowConfig->dHorzMsgCount;
 					liScrollMsg = WM_HSCROLL;                         
 				}
 				else                                          
 				{
-					liMsgCount = lpWindowConfig->iVertMsgCount;
+					ldMsgCount = lpWindowConfig->dVertMsgCount;
 					liScrollMsg = WM_VSCROLL;    
 				}
 
@@ -150,21 +155,35 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 				HWND scrollHWnd = GetScrollHandle(lhwndMsgTarget, lbHorizontalScroll);
 
 				// Determine how much the mouse wheel has moved 
-				short lsWheelDelta = HIWORD(lpMsg->wParam);
-		
+				double ldWheelDelta = (short)(HIWORD(lpMsg->wParam));
+				ldWheelDelta *= ldMsgCount;
+
 				UINT liScrollType = SB_LINEUP;
-				if( lsWheelDelta < 0 )
+				if( ldWheelDelta < 0 )
 				{
 					liScrollType = SB_LINEDOWN;
-					lsWheelDelta = -lsWheelDelta;
+					ldWheelDelta = -ldWheelDelta;
 				}
 
-				for(int liScrollAmount = 0; liScrollAmount < lsWheelDelta; liScrollAmount += WHEEL_DELTA)
+				// Reset the accumulated mouse movement if necessary
+				if ( (lhwndMsgTarget != g_hwndLastTarget) || 
+				     (liScrollType != g_bLastScrollType) ||
+				     (liScrollMsg != g_bLastScrollDirection) )
 				{
-					for(int liMsgsSent = 0; liMsgsSent < liMsgCount; ++liMsgsSent)
-					{
-						SendMessage(lhwndMsgTarget, liScrollMsg, liScrollType, (LPARAM)scrollHWnd);
-					}
+					g_dWheelDelta = 0;
+				}
+
+				g_dWheelDelta += ldWheelDelta;
+
+				g_hwndLastTarget = lhwndMsgTarget;
+				g_bLastScrollType = liScrollType;
+				g_bLastScrollDirection = liScrollMsg;
+
+				while( g_dWheelDelta >= WHEEL_DELTA)
+				{
+					SendMessage(lhwndMsgTarget, liScrollMsg, liScrollType, (LPARAM)scrollHWnd);
+
+					g_dWheelDelta -= WHEEL_DELTA;
 				}
 
 				SendMessage(lpMsg->hwnd, liScrollMsg, SB_ENDSCROLL, (LPARAM)scrollHWnd);
@@ -191,8 +210,8 @@ void UnsetHook()
 void AddScrollWindow(const std::basic_string<TCHAR>& astrProcess,
 			         const std::basic_string<TCHAR>& astrWindowClass,
 			         const std::basic_string<TCHAR>& astrParentClass,
-					 int aiVertMsgCount,
-					 int aiHorzMsgCount)
+					 double adVertMsgCount,
+					 double adHorzMsgCount)
 {
 	int index = g_iWindowCount++;
 	if ( index < MAX_WINDOWS )
@@ -201,8 +220,8 @@ void AddScrollWindow(const std::basic_string<TCHAR>& astrProcess,
 			                   astrProcess, 
 							   astrWindowClass, 
 							   astrParentClass, 
-							   aiVertMsgCount, 
-							   aiHorzMsgCount);
+							   adVertMsgCount, 
+							   adHorzMsgCount);
 	}
 
 }

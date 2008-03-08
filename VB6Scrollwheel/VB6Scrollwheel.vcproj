@@ -193,6 +193,10 @@
 				RelativePath="VB6Scrollwheel.cpp"
 				>
 			</File>
+			<File
+				RelativePath="VB6Scrollwheel.rc"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -213,10 +217,6 @@
 			>
 			<File
 				RelativePath="Untitled.ico"
-				>
-			</File>
-			<File
-				RelativePath="VB6Scrollwheel.rc"
 				>
 			</File>
 		</Filter>

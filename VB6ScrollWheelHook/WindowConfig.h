@@ -12,8 +12,8 @@ struct WindowConfig
 	TCHAR strProcess[MAX_PROCESS];
 	TCHAR strWindowClass[MAX_PROCESS];
 	TCHAR strParentClass[MAX_PROCESS];
-	int iVertMsgCount;
-	int iHorzMsgCount;
+	double dVertMsgCount;
+	double dHorzMsgCount;
 };
 
 bool Match(const WindowConfig& aWindowConfig, HWND aHwnd, HWND& arTargetHwnd);
@@ -22,5 +22,5 @@ void InitializeWindowConfig(WindowConfig& arWindowConfig,
 							const std::basic_string<TCHAR>& astrProcess,
 							const std::basic_string<TCHAR>& astrWindowClass,
 							const std::basic_string<TCHAR>& astrParentClass,
-							int aiVertMsgCount,
-							int aiHorzMsgCount);
+							double adVertMsgCount,
+							double adHorzMsgCount);
