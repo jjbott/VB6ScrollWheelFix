@@ -106,9 +106,13 @@
     <None Include="VB6ScrollWheelHook.def" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="VB6ScrollWheelHook.h" />
     <ClInclude Include="WindowConfig.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VB6ScrollWheelHook.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
