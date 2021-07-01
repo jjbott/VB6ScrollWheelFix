@@ -13,13 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -56,12 +54,13 @@ END
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "untitled.ico"
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
 //
 
-IDR_MENU1 MENU 
+IDR_MENU1 MENU
 BEGIN
     POPUP "Some words"
     BEGIN
@@ -76,30 +75,14 @@ END
 // Dialog
 //
 
-IDD_ABOUT DIALOGEX 0, 0, 143, 68
+IDD_ABOUT DIALOGEX 0, 0, 210, 74
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About..."
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,47,46,50,14
-    ICON            IDI_ICON1,IDC_STATIC,8,8,21,20,SS_REALSIZEIMAGE
-    CTEXT           "VB6 Scroll Wheel Fix\nWritten by Joe Bott\nwww.joebott.com",IDC_STATIC,48,11,87,26
-END
-
-IDD_DIALOG1 DIALOGEX 0, 0, 186, 117
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,75,96,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,129,96,50,14
-    EDITTEXT        IDC_EDIT1,89,10,40,14,ES_AUTOHSCROLL
-    LTEXT           "Line Up/Down Messages Per Wheel Click",IDC_STATIC,7,7,79,21
-    GROUPBOX        "Advanced",IDC_STATIC,7,31,172,58
-    LTEXT           "Wheel Click Delta",IDC_STATIC,14,45,56,8
-    EDITTEXT        IDC_EDIT2,74,44,40,14,ES_AUTOHSCROLL
-    CONTROL         "Debug Logging",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,64,63,10
-    CONTROL         "Log messages for ignored windows",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,29,76,127,10
+    DEFPUSHBUTTON   "OK",IDOK,80,52,50,14
+    ICON            IDI_ICON1,IDC_STATIC,8,8,20,20,SS_REALSIZEIMAGE
+    CTEXT           "VB6 Scroll Wheel Fix\nWritten by Joe Bott\nCopyright 2021\nhttps://github.com/jjbott/VB6ScrollWheelFix",IDC_STATIC,42,11,160,39,SS_NOTIFY
 END
 
 
@@ -109,27 +92,30 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 8
-        RIGHTMARGIN, 135
+        RIGHTMARGIN, 202
         TOPMARGIN, 8
-        BOTTOMMARGIN, 60
-    END
-
-    IDD_DIALOG1, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 179
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 110
+        BOTTOMMARGIN, 66
     END
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // English (U.S.) resources
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ABOUT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
