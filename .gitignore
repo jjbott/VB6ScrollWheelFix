@@ -1,0 +1,6 @@
+/.vs
+[D|d]ebug
+[R|r]elease
+*.user
+Backup/
+UpgradeLog*.htm

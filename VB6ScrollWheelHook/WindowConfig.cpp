@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdAfx.h"
 #include "WindowConfig.h"
 #include "TCHAR.h"
 

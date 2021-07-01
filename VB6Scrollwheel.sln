@@ -1,11 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VB6Scrollwheel", ".\VB6ScrollWheel\VB6Scrollwheel.vcproj", "{E06B665E-56B3-4A4D-9892-846AA5058C3D}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5E020592-9353-4785-8F07-8CAB0EE4F1AA} = {5E020592-9353-4785-8F07-8CAB0EE4F1AA}
-	EndProjectSection
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31019.35
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VB6Scrollwheel", "VB6ScrollWheel\VB6Scrollwheel.vcxproj", "{E06B665E-56B3-4A4D-9892-846AA5058C3D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VB6ScrollWheelHook", ".\VB6ScrollWheelHook\VB6ScrollWheelHook.vcproj", "{5E020592-9353-4785-8F07-8CAB0EE4F1AA}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VB6ScrollWheelHook", "VB6ScrollWheelHook\VB6ScrollWheelHook.vcxproj", "{5E020592-9353-4785-8F07-8CAB0EE4F1AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +23,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5D1BDDF3-15DD-4084-B4BF-E54960CC6A27}
 	EndGlobalSection
 EndGlobal

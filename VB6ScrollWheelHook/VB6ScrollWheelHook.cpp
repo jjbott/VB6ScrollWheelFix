@@ -19,9 +19,6 @@ static WindowConfig g_aWindows[MAX_WINDOWS] = {};
 #pragma data_seg()
 #pragma comment(linker, "/section:SHARED,RWS")
 
-// horizontal mouse wheel message id
-#define WM_MOUSEHWHEEL (0x020e)
-
 HINSTANCE hInstance;
 
 double g_dWheelDelta(0);
